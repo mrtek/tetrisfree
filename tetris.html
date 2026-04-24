@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тетрис</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .game-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00eeff, 0 0 20px #00eeff;
+            letter-spacing: 3px;
+        }
+
+        .game-board {
+            position: relative;
+            width: 300px;
+            height: 600px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00eeff;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(0, 238, 255, 0.3);
+            overflow: hidden;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+            width: 100%;
+            height: 100%;
+            gap: 1px;
+        }
+
+        .cell {
+            background: rgba(30, 30, 46, 0.5);
+            border-radius: 2px;
+            transition: all 0.1s ease;
+        }
+
+        .cell.filled {
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 150px;
+        }
+
+        .panel-section {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(0, 238, 255, 0.3);
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #00eeff;
+        }
+
+        .score-display {
+            font-size: 2rem;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00eeff;
+        }
+
+        .next-piece {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid rgba(0, 238, 255, 0.3);
+        }
+
+        .next-piece-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            width: 100px;
+            height: 100px;
+            gap: 2px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .controls p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .game-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(45deg, #00eeff, #0066ff);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 238, 255, 0.5);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 238, 255, 0.7);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .game-over.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .game-over h2 {
+            font-size: 3rem;
+            color: #ff0055;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #ff0055;
+        }
+
+        .game-over p {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+        }
+
+        .piece-I { background: linear-gradient(135deg, #00eeff, #0066ff); }
+        .piece-O { background: linear-gradient(135deg, #ffff00, #ff9900); }
+        .piece-T { background: linear-gradient(135deg, #8000ff, #6600cc); }
+        .piece-S { background: linear-gradient(135deg, #00ff00, #009900); }
+        .piece-Z { background: linear-gradient(135deg, #ff0000, #cc0000); }
+        .piece-J { background: linear-gradient(135deg, #0000ff, #000099); }
+        .piece-L { background: linear-gradient(135deg, #ff9900, #cc6600); }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 0.5s ease;
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; }
+        }
+
+        .fade-out {
+            animation: fadeOut 0.3s ease forwards;
+        }
+
+        .level-display {
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+
+        .level-indicator {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .level-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #00eeff, #0066ff);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-board">
+            <div class="grid" id="grid"></div>
+            <div class="game-over" id="gameOver">
+                <h2>ИГРА ОКОНЧЕНА</h2>
+                <p>Счет: <span id="finalScore">0</span></p>
+                <button id="restartButton">Новая игра</button>
+            </div>
+        </div>
+        
+        <div class="side-panel">
+            <div class="game-header">
+                <h1>ТЕТРИС</h1>
+            </div>
+            
+            <div class="panel-section">
+                <div class="panel-title">СЧЕТ</div>
+                <div class="score-display" id="score">0</div>
+            </div>
+            
+            <div class="panel-section">
+                <div class="panel-title">УРОВЕНЬ</div>
+                <div class="score-display" id="level">1</div>
+                <div class="level-display">
+                    <div class="level-indicator">
+                        <div class="level-progress" id="levelProgress"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <div class="panel-title">СЛЕДУЮЩАЯ ФИГУРА</div>
+                <div class="next-piece">
+                    <div class="next-piece-grid" id="nextPiece"></div>
+                </div>
+            </div>
+            
+            <div class="game-buttons">
+                <button id="startButton">Начать игру</button>
+                <button id="pauseButton">Пауза</button>
+            </div>
+            
+            <div class="controls">
+                <p>← → : движение</p>
+                <p>↑ : поворот</p>
+                <p>↓ : ускорение</p>
+                <p>Пробел : мгновенное падение</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Игровые константы
+        const COLS = 10;
+        const ROWS = 20;
+        const EMPTY = 'empty';
+        
+        // Фигуры Тетриса
+        const SHAPES = [
+            { name: 'I', color: 'piece-I', shape: [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]] },
+            { name: 'J', color: 'piece-J', shape: [[1,0,0], [1,1,1], [0,0,0]] },
+            { name: 'L', color: 'piece-L', shape: [[0,0,1], [1,1,1], [0,0,0]] },
+            { name: 'O', color: 'piece-O', shape: [[1,1], [1,1]] },
+            { name: 'S', color: 'piece-S', shape: [[0,1,1], [1,1,0], [0,0,0]] },
+            { name: 'T', color: 'piece-T', shape: [[0,1,0], [1,1,1], [0,0,0]] },
+            { name: 'Z', color: 'piece-Z', shape: [[1,1,0], [0,1,1], [0,0,0]] }
+        ];
+        
+        // Игровые переменные
+        let grid = [];
+        let currentPiece = null;
+        let nextPiece = null;
+        let score = 0;
+        let level = 1;
+        let lines = 0;
+        let gameOver = false;
+        let isPaused = false;
+        let dropInterval = null;
+        let dropSpeed = 1000; // миллисекунды
+        
+        // DOM элементы
+        const gridElement = document.getElementById('grid');
+        const nextPieceElement = document.getElementById('nextPiece');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const levelProgress = document.getElementById('levelProgress');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        const startButton = document.getElementById('startButton');
+        const pauseButton = document.getElementById('pauseButton');
+        const restartButton = document.getElementById('restartButton');
+        
+        // Инициализация игрового поля
+        function initGrid() {
+            grid = Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
+            renderGrid();
+        }
+        
+        // Создание игрового поля
+        function createGrid() {
+            gridElement.innerHTML = '';
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    gridElement.appendChild(cell);
+                }
+            }
+        }
+        
+        // Отображение игрового поля
+        function renderGrid() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                const r = parseInt(cell.dataset.row);
+                const c = parseInt(cell.dataset.col);
+                
+                if (grid[r][c] !== EMPTY) {
+                    cell.className = `cell filled ${grid[r][c]}`;
+                } else {
+                    cell.className = 'cell';
+                }
+            });
+        }
+        
+        // Создание случайной фигуры
+        function getRandomPiece() {
+            const randIndex = Math.floor(Math.random() * SHAPES.length);
+            return JSON.parse(JSON.stringify(SHAPES[randIndex]));
+        }
+        
+        // Инициализация новой фигуры
+        function newPiece() {
+            if (nextPiece === null) {
+                nextPiece = getRandomPiece();
+            }
+            
+            currentPiece = nextPiece;
+            nextPiece = getRandomPiece();
+            renderNextPiece();
+            
+            // Позиционирование фигуры
+            currentPiece.x = Math.floor(COLS / 2) - Math.floor(currentPiece.shape[0].length / 2);
+            currentPiece.y = 0;
+            
+            // Проверка на проигрыш
+            if (checkCollision()) {
+                gameOver = true;
+                showGameOver();
+            }
+        }
+        
+        // Отображение следующей фигуры
+        function renderNextPiece() {
+            nextPieceElement.innerHTML = '';
+            const pieceGrid = document.createElement('div');
+            pieceGrid.className = 'next-piece-grid';
+            
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 4; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    if (nextPiece.shape[r] && nextPiece.shape[r][c]) {
+                        cell.classList.add('filled', nextPiece.color);
+                    }
+                    
+                    pieceGrid.appendChild(cell);
+                }
+            }
+            
+            nextPieceElement.appendChild(pieceGrid);
+        }
+        
+        // Проверка столкновения
+        function checkCollision() {
+            for (let r = 0; r < currentPiece.shape.length; r++) {
+                for (let c = 0; c < currentPiece.shape[r].length; c++) {
+                    if (currentPiece.shape[r][c]) {
+                        const newX = currentPiece.x + c;
+                        const newY = currentPiece.y + r;
+                        
+                        if (
+                            newX < 0 || 
+                            newX >= COLS || 
+                            newY >= ROWS ||
+                            (newY >= 0 && grid[newY][newX] !== EMPTY)
+                        ) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Поворот фигуры
+        function rotatePiece() {
+            const originalShape = currentPiece.shape;
+            const rows = originalShape.length;
+            const cols = originalShape[0].length;
+            
+            // Создаем новую фигуру для поворота
+            const rotated = Array.from({ length: cols }, () => Array(rows).fill(0));
+            
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    rotated[c][rows - 1 - r] = originalShape[r][c];
+                }
+            }
+            
+            const originalPiece = currentPiece.shape;
+            currentPiece.shape = rotated;
+            
+            // Если поворот вызывает столкновение, возвращаем обратно
+            if (checkCollision()) {
+                currentPiece.shape = originalPiece;
+            }
+        }
+        
+        // Помещение фигуры на поле
+        function placePiece() {
+            for (let r = 0; r < currentPiece.shape.length; r++) {
+                for (let c = 0; c < currentPiece.shape[r].length; c++) {
+                    if (currentPiece.shape[r][c]) {
+                        const y = currentPiece.y + r;
+                        const x = currentPiece.x + c;
+                        
+                        if (y >= 0) {
+                            grid[y][x] = currentPiece.color;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Очистка полных линий
+        function clearLines() {
+            let linesCleared = 0;
+            
+            for (let r = ROWS - 1; r >= 0; r--) {
+                if (grid[r].every(cell => cell !== EMPTY)) {
+                    // Удаляем линию
+                    grid.splice(r, 1);
+                    // Добавляем новую пустую линию сверху
+                    grid.unshift(Array(COLS).fill(EMPTY));
+                    linesCleared++;
+                    r++; // Проверяем ту же строку снова
+                }
+            }
+            
+            if (linesCleared > 0) {
+                // Обновляем счет
+                const points = [0, 40, 100, 300, 1200][linesCleared] * level;
+                score += points;
+                lines += linesCleared;
+                
+                // Обновляем уровень
+                level = Math.floor(lines / 10) + 1;
+                dropSpeed = Math.max(100, 1000 - (level - 1) * 100);
+                
+                // Обновляем отображение
+                updateScore();
+                updateLevel();
+                
+                // Анимация очистки
+                animateClearLines(linesCleared);
+            }
+        }
+        
+        // Анимация очистки линий
+        function animateClearLines(linesCleared) {
+            const cells = document.querySelectorAll('.cell.filled');
+            cells.forEach(cell => {
+                cell.classList.add('fade-out');
+            });
+            
+            setTimeout(() => {
+                renderGrid();
+            }, 300);
+        }
+        
+        // Обновление счета
+        function updateScore() {
+            scoreElement.textContent = score;
+        }
+        
+        // Обновление уровня
+        function updateLevel() {
+            levelElement.textContent = level;
+            
+            // Обновляем прогресс уровня
+            const progress = (lines % 10) / 10 * 100;
+            levelProgress.style.width = `${progress}%`;
+        }
+        
+        // Движение фигуры влево
+        function moveLeft() {
+            if (gameOver || isPaused) return;
+            currentPiece.x--;
+            if (checkCollision()) {
+                currentPiece.x++;
+            }
+        }
+        
+        // Движение фигуры вправо
+        function moveRight() {
+            if (gameOver || isPaused) return;
+            currentPiece.x++;
+            if (checkCollision()) {
+                currentPiece.x--;
+            }
+        }
+        
+        // Движение фигуры вниз
+        function moveDown() {
+            if (gameOver || isPaused) return;
+            currentPiece.y++;
+            if (checkCollision()) {
+                currentPiece.y--;
+                placePiece();
+                clearLines();
+                newPiece();
+            }
+        }
+        
+        // Мгновенное падение
+        function hardDrop() {
+            if (gameOver || isPaused) return;
+            while (!checkCollision()) {
+                currentPiece.y++;
+            }
+            currentPiece.y--;
+            placePiece();
+            clearLines();
+            newPiece();
+        }
+        
+        // Основной игровой цикл
+        function gameLoop() {
+            if (gameOver || isPaused) return;
+            moveDown();
+        }
+        
+        // Запуск игры
+        function startGame() {
+            if (dropInterval) clearInterval(dropInterval);
+            
+            initGrid();
+            score = 0;
+            level = 1;
+            lines = 0;
+            gameOver = false;
+            isPaused = false;
+            
+            updateScore();
+            updateLevel();
+            
+            gameOverElement.classList.remove('show');
+            
+            newPiece();
+            dropInterval = setInterval(gameLoop, dropSpeed);
+        }
+        
+        // Пауза игры
+        function togglePause() {
+            if (gameOver) return;
+            
+            isPaused = !isPaused;
+            pauseButton.textContent = isPaused ? 'Продолжить' : 'Пауза';
+            
+            if (isPaused) {
+                clearInterval(dropInterval);
+            } else {
+                dropInterval = setInterval(gameLoop, dropSpeed);
+            }
+        }
+        
+        // Отображение экрана окончания игры
+        function showGameOver() {
+            clearInterval(dropInterval);
+            finalScoreElement.textContent = score;
+            gameOverElement.classList.add('show');
+        }
+        
+        // Обработка клавиш
+        function handleKeyPress(e) {
+            if (gameOver) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    moveLeft();
+                    break;
+                case 'ArrowRight':
+                    moveRight();
+                    break;
+                case 'ArrowDown':
+                    moveDown();
+                    break;
+                case 'ArrowUp':
+                    rotatePiece();
+                    break;
+                case ' ':
+                    hardDrop();
+                    break;
+                case 'p':
+                case 'P':
+                    togglePause();
+                    break;
+            }
+            
+            renderGrid();
+        }
+        
+        // Инициализация игры
+        function init() {
+            createGrid();
+            initGrid();
+            
+            // События кнопок
+            startButton.addEventListener('click', startGame);
+            pauseButton.addEventListener('click', togglePause);
+            restartButton.addEventListener('click', startGame);
+            
+            // События клавиш
+            document.addEventListener('keydown', handleKeyPress);
+            
+            // Инициализация первого игрового цикла
+            renderGrid();
+        }
+        
+        // Запуск игры при загрузке
+        window.onload = init;
+    </script>
+</body>
+</html>
